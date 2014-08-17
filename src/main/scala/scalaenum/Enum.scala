@@ -120,7 +120,7 @@ abstract class Enum (initial: Int) extends Serializable {
   final def withName(s: String): Value = values.find(_.toString == s).get
 
   /** Creates a fresh value, part of this enumeration. */
-  protected final def Value: Value = Value(nextId)
+  protected final def Value(implicit ev: Val =:= Value): Value = Value(nextId)
 
   /** Creates a fresh value, part of this enumeration, identified by the
    *  integer `i`.
@@ -129,14 +129,14 @@ abstract class Enum (initial: Int) extends Serializable {
    *           unique amongst all values of the enumeration.
    *  @return  Fresh value identified by `i`.
    */
-  protected final def Value(i: Int): Value = Value(i, nextNameOrNull)
+  protected final def Value(i: Int)(implicit ev: Val =:= Value): Value = Value(i, nextNameOrNull)
 
   /** Creates a fresh value, part of this enumeration, called `name`.
    *
    *  @param name A human-readable name for that value.
    *  @return  Fresh value called `name`.
    */
-  protected final def Value(name: String): Value = Value(nextId, name)
+  protected final def Value(name: String)(implicit ev: Val =:= Value): Value = Value(nextId, name)
 
   /** Creates a fresh value, part of this enumeration, called `name`
    *  and identified by the integer `i`.
@@ -146,7 +146,7 @@ abstract class Enum (initial: Int) extends Serializable {
    * @param name A human-readable name for that value.
    * @return     Fresh value with the provided identifier `i` and name `name`.
    */
-  protected final def Value(i: Int, name: String): Value = new Val(i, name)
+  protected final def Value(i: Int, name: String)(implicit ev: Val =:= Value): Value = new Val(i, name)
 
   private def populateNameMap() {
     val fields = getClass.getDeclaredFields
@@ -154,7 +154,7 @@ abstract class Enum (initial: Int) extends Serializable {
 
     // The list of possible Value methods: 0-args which return a conforming type
     val methods = getClass.getMethods filter (m => m.getParameterTypes.isEmpty &&
-                                                   classOf[Value].isAssignableFrom(m.getReturnType) &&
+                                                   classOf[Val].isAssignableFrom(m.getReturnType) &&
                                                    m.getDeclaringClass != classOf[Enum] &&
                                                    isValDef(m))
     methods foreach { m =>
@@ -175,10 +175,30 @@ abstract class Enum (initial: Int) extends Serializable {
   private def nameOf(i: Int): String = synchronized { nmap.getOrElse(i, { populateNameMap() ; nmap(i) }) }
 
   /** The type of the enumerated values. */
-  @SerialVersionUID(5128482996950518242L)
-  abstract class Value extends Ordered[Value] with Serializable {
+  type Value <: Val
+
+  /** A class implementing the [[scala.Enum.Value]] type. This class
+   *  can be overridden to change the enumeration's naming and integer
+   *  identification behaviour.
+   */
+  @SerialVersionUID(0 - 5171900738382012206L)
+  protected class Val protected[Enum] (i: Int, name: String) extends Ordered[Value] with Serializable {
+    protected def this(i: Int)       = this(i, nextNameOrNull)
+    protected def this(name: String) = this(nextId, name)
+    protected def this()             = this(nextId)
+
+    // workaround because self-type annotation disallows Value-method to
+    // instantiate values
+    private[this] def thisAsValue: Value = this.asInstanceOf[Value]
+
+    assert(!vmap.isDefinedAt(i), "Duplicate id: " + i)
+    vmap(i) = thisAsValue
+    vsetDefined = false
+    nextId = i + 1
+    if (nextId > topId) topId = nextId
+    if (i < bottomId) bottomId = i
     /** the id and bit location of this enumeration value */
-    def id: Int
+    def id: Int = i
     /** a marker so we can tell whose values belong to whom come reflective-naming time */
     private[Enum] val outerEnum = thisenum
 
@@ -187,32 +207,14 @@ abstract class Enum (initial: Int) extends Serializable {
       else if (this.id == that.id) 0
       else 1
     override def equals(other: Any) = other match {
-      case that: Enum#Value  => (outerEnum eq that.outerEnum) && (id == that.id)
-      case _                 => false
+      case that: Enum#Val  => (outerEnum eq that.outerEnum) && (id == that.id)
+      case _               => false
     }
     override def hashCode: Int = id.##
 
     /** Create a ValueSet which contains this value and another one */
-    def + (v: Value) = ValueSet(this, v)
-  }
+    def + (v: Value) = ValueSet(thisAsValue, v)
 
-  /** A class implementing the [[scala.Enum.Value]] type. This class
-   *  can be overridden to change the enumeration's naming and integer
-   *  identification behaviour.
-   */
-  @SerialVersionUID(0 - 5171900738382012206L)
-  protected class Val(i: Int, name: String) extends Value with Serializable {
-    def this(i: Int)       = this(i, nextNameOrNull)
-    def this(name: String) = this(nextId, name)
-    def this()             = this(nextId)
-
-    assert(!vmap.isDefinedAt(i), "Duplicate id: " + i)
-    vmap(i) = this
-    vsetDefined = false
-    nextId = i + 1
-    if (nextId > topId) topId = nextId
-    if (i < bottomId) bottomId = i
-    def id = i
     override def toString() =
       if (name != null) name
       else try thisenum.nameOf(i)
