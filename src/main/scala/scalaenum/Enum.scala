@@ -1,10 +1,6 @@
-/*                     __                                               *\
-**     ________ ___   / /  ___     Scala API                            **
-**    / __/ __// _ | / /  / _ |    (c) 2002-2013, LAMP/EPFL             **
-**  __\ \/ /__/ __ |/ /__/ __ |    http://scala-lang.org/               **
-** /____/\___/_/ |_/____/_/ | |                                         **
-**                          |/                                          **
-\*                                                                      */
+/* Based on Enumeration.scala from Scala library, v2.11.2.
+ * See http://scala-lang.org (released under BSD 3-Clause License)
+ */
 
 package scala
 
