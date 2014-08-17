@@ -18,28 +18,39 @@ import scala.util.matching.Regex
  *  the evaluation.
  *
  *  All values in an enumeration share a common, unique type defined as the
- *  `Value` type member of the enumeration (`Value` selected on the stable
- *  identifier path of the enumeration instance).
+ *  abstract `Value` type member of the enumeration (`Value` selected on the
+ *  stable identifier path of the enumeration instance). Example:
  *
- * @example {{{
- *  object Main extends App {
- *
- *    object WeekDay extends Enum {
- *      type WeekDay = Value
- *      val Mon, Tue, Wed, Thu, Fri, Sat, Sun = Value
- *    }
- *    import WeekDay._
- *
- *    def isWorkingDay(d: WeekDay) = ! (d == Sat || d == Sun)
- *
- *    WeekDay.values filter isWorkingDay foreach println
+ *  {{{
+ *  // basic use case, analogous to scala.Enumeration
+ *  object Color extends Enum {
+ *    type Value = Val              // Value is abstract type in Enum
+ *    val Red, Green, Blue = Value  // Value is method instantiating Val (only if Val =:= Value)
  *  }
+ *  }}}
+ *
+ *  Additionally, in contrast to Scala's built-in Enumeration, the `Value` type
+ *  member can be extended in subclasses, such that it is possible to mix-in
+ *  traits, for example. In this case, make sure to make the constructor of
+ *  `Value` private. Example:
+ *
+ *  {{{
+ *  // adding methods to Value
+ *  object Day extends Enum {
+ *    class Value private[Day] extends Val {
+ *      def isWorkingDay: Boolean = this != Saturday && this != Sunday
+ *    }
+ *    val Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday = new Value
+ *  }
+ *
+ *  // usage:
+ *  Day.values filter (_.isWorkingDay) foreach println
  *  // output:
- *  // Mon
- *  // Tue
- *  // Wed
- *  // Thu
- *  // Fri
+ *  // Monday
+ *  // Tuesday
+ *  // Wednesday
+ *  // Thursday
+ *  // Friday
  *  }}}
  *
  *  @param initial The initial value from which to count the integers that
@@ -177,9 +188,10 @@ abstract class Enum (initial: Int) extends Serializable {
   /** The type of the enumerated values. */
   type Value <: Val
 
-  /** A class implementing the [[scala.Enum.Value]] type. This class
+  /** The superclass of the `scala.Enum.Value` type. This class
    *  can be overridden to change the enumeration's naming and integer
-   *  identification behaviour.
+   *  identification behaviour, as well as to add additional public
+   *  functionality.
    */
   @SerialVersionUID(0 - 5171900738382012206L)
   protected class Val protected[Enum] (i: Int, name: String) extends Ordered[Value] with Serializable {
