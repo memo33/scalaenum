@@ -2,7 +2,7 @@
  * See http://scala-lang.org (released under BSD 3-Clause License)
  */
 
-package scala
+package scalaenum
 
 import scala.collection.{ mutable, immutable, generic, SortedSetLike, AbstractSet }
 import java.lang.reflect.{ Modifier, Method => JMethod, Field => JField }
@@ -24,7 +24,7 @@ import scala.util.matching.Regex
  * @example {{{
  *  object Main extends App {
  *
- *    object WeekDay extends Enumeration {
+ *    object WeekDay extends Enum {
  *      type WeekDay = Value
  *      val Mon, Tue, Wed, Thu, Fri, Sat, Sun = Value
  *    }
@@ -46,8 +46,8 @@ import scala.util.matching.Regex
  *                 identifies values at run-time.
  *  @author  Matthias Zenger
  */
-@SerialVersionUID(8476000850333817230L)
-abstract class Enumeration (initial: Int) extends Serializable {
+@SerialVersionUID(3873795915489789436L)
+abstract class Enum (initial: Int) extends Serializable {
   thisenum =>
 
   def this() = this(0)
@@ -109,13 +109,13 @@ abstract class Enumeration (initial: Int) extends Serializable {
    */
   final def apply(x: Int): Value = vmap(x)
 
-  /** Return a `Value` from this `Enumeration` whose name matches
+  /** Return a `Value` from this `Enum` whose name matches
    *  the argument `s`.  The names are determined automatically via reflection.
    *
-   * @param  s an `Enumeration` name
-   * @return   the `Value` of this `Enumeration` if its name matches `s`
+   * @param  s an `Enum` name
+   * @return   the `Value` of this `Enum` if its name matches `s`
    * @throws   NoSuchElementException if no `Value` with a matching
-   *           name is in this `Enumeration`
+   *           name is in this `Enum`
    */
   final def withName(s: String): Value = values.find(_.toString == s).get
 
@@ -155,13 +155,13 @@ abstract class Enumeration (initial: Int) extends Serializable {
     // The list of possible Value methods: 0-args which return a conforming type
     val methods = getClass.getMethods filter (m => m.getParameterTypes.isEmpty &&
                                                    classOf[Value].isAssignableFrom(m.getReturnType) &&
-                                                   m.getDeclaringClass != classOf[Enumeration] &&
+                                                   m.getDeclaringClass != classOf[Enum] &&
                                                    isValDef(m))
     methods foreach { m =>
       val name = m.getName
       // invoke method to obtain actual `Value` instance
       val value = m.invoke(this).asInstanceOf[Value]
-      // verify that outer points to the correct Enumeration: ticket #3616.
+      // verify that outer points to the correct Enum: ticket #3616.
       if (value.outerEnum eq thisenum) {
         val id = Int.unbox(classOf[Val] getMethod "id" invoke value)
         nmap += ((id, name))
@@ -175,20 +175,20 @@ abstract class Enumeration (initial: Int) extends Serializable {
   private def nameOf(i: Int): String = synchronized { nmap.getOrElse(i, { populateNameMap() ; nmap(i) }) }
 
   /** The type of the enumerated values. */
-  @SerialVersionUID(7091335633555234129L)
+  @SerialVersionUID(5128482996950518242L)
   abstract class Value extends Ordered[Value] with Serializable {
     /** the id and bit location of this enumeration value */
     def id: Int
     /** a marker so we can tell whose values belong to whom come reflective-naming time */
-    private[Enumeration] val outerEnum = thisenum
+    private[Enum] val outerEnum = thisenum
 
     override def compare(that: Value): Int =
       if (this.id < that.id) -1
       else if (this.id == that.id) 0
       else 1
     override def equals(other: Any) = other match {
-      case that: Enumeration#Value  => (outerEnum eq that.outerEnum) && (id == that.id)
-      case _                        => false
+      case that: Enum#Value  => (outerEnum eq that.outerEnum) && (id == that.id)
+      case _                 => false
     }
     override def hashCode: Int = id.##
 
@@ -196,11 +196,11 @@ abstract class Enumeration (initial: Int) extends Serializable {
     def + (v: Value) = ValueSet(this, v)
   }
 
-  /** A class implementing the [[scala.Enumeration.Value]] type. This class
+  /** A class implementing the [[scala.Enum.Value]] type. This class
    *  can be overridden to change the enumeration's naming and integer
    *  identification behaviour.
    */
-  @SerialVersionUID(0 - 3501153230598116017L)
+  @SerialVersionUID(0 - 5171900738382012206L)
   protected class Val(i: Int, name: String) extends Value with Serializable {
     def this(i: Int)       = this(i, nextNameOrNull)
     def this(name: String) = this(nextId, name)
@@ -219,7 +219,7 @@ abstract class Enumeration (initial: Int) extends Serializable {
       catch { case _: NoSuchElementException => "<Invalid enum: no field for #" + i + ">" }
 
     protected def readResolve(): AnyRef = {
-      val enum = thisenum.readResolve().asInstanceOf[Enumeration]
+      val enum = thisenum.readResolve().asInstanceOf[Enum]
       if (enum.vmap == null) this
       else enum.vmap(i)
     }
