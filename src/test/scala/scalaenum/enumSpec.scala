@@ -106,4 +106,26 @@ class EnumSpec extends WordSpec with Matchers {
     }
   }
 
+  object Foo extends Enumeration {
+    val A, B = Value
+  }
+  object Bar extends Enumeration {
+    class Val extends super.Val
+    val A, B = new Val
+    import scala.language.implicitConversions
+    implicit def valueToVal(v: Value): Val = v.asInstanceOf[Val]
+  }
+  object Baz extends Enum {
+    class Value private[Baz] extends Val
+    val A, B = new Value
+  }
+  "Enum.map()" should {
+    "be able to map ValueSets to Seqs" in {
+      val foo: Seq[Foo.Value] = (Foo.A + Foo.B).map(identity)(scala.collection.breakOut)
+      import Bar.valueToVal
+      //val bar: Seq[Bar.Val] = (Bar.A + Bar.B).map(v => v)(scala.collection.breakOut)  // does not compile!
+      val baz: Seq[Baz.Value] = (Baz.A + Baz.B).map(identity)(scala.collection.breakOut)
+    }
+  }
+
 }
