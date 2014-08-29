@@ -19,28 +19,20 @@ import scala.util.matching.Regex
  *
  *  All values in an enumeration share a common, unique type defined as the
  *  abstract `Value` type member of the enumeration (`Value` selected on the
- *  stable identifier path of the enumeration instance). Example:
- *
- *  {{{
- *  // basic use case, analogous to scala.Enumeration
- *  object Color extends Enum {
- *    type Value = Val              // Value is abstract type in Enum
- *    val Red, Green, Blue = Value  // Value is method instantiating Val (only if Val =:= Value)
- *  }
- *  }}}
- *
- *  Additionally, in contrast to Scala's built-in Enumeration, the `Value` type
+ *  stable identifier path of the enumeration instance).
+ *  Besides, in contrast to Scala's built-in Enumeration, the `Value` type
  *  member can be extended in subclasses, such that it is possible to mix-in
  *  traits, for example. In this case, make sure to make the constructor of
  *  `Value` private. Example:
  *
  *  {{{
  *  // adding methods to Value
+ *  class Day private extends Day.Val {
+ *    def isWorkingDay: Boolean = this != Day.Saturday && this != Day.Sunday
+ *  }
  *  object Day extends Enum {
- *    class Value private[Day] extends Val {
- *      def isWorkingDay: Boolean = this != Saturday && this != Sunday
- *    }
- *    val Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday = new Value
+ *    type Value = Day
+ *    val Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday = new Day
  *  }
  *
  *  // usage:
@@ -57,7 +49,7 @@ import scala.util.matching.Regex
  *                 identifies values at run-time.
  *  @author  Matthias Zenger
  */
-@SerialVersionUID(3873795915489789436L)
+@SerialVersionUID(504146442575237004L)
 abstract class Enum (initial: Int) extends Serializable {
   thisenum =>
 
@@ -130,35 +122,6 @@ abstract class Enum (initial: Int) extends Serializable {
    */
   final def withName(s: String): Value = values.find(_.toString == s).get
 
-  /** Creates a fresh value, part of this enumeration. */
-  protected final def Value(implicit ev: Val =:= Value): Value = Value(nextId)
-
-  /** Creates a fresh value, part of this enumeration, identified by the
-   *  integer `i`.
-   *
-   *  @param i An integer that identifies this value at run-time. It must be
-   *           unique amongst all values of the enumeration.
-   *  @return  Fresh value identified by `i`.
-   */
-  protected final def Value(i: Int)(implicit ev: Val =:= Value): Value = Value(i, nextNameOrNull)
-
-  /** Creates a fresh value, part of this enumeration, called `name`.
-   *
-   *  @param name A human-readable name for that value.
-   *  @return  Fresh value called `name`.
-   */
-  protected final def Value(name: String)(implicit ev: Val =:= Value): Value = Value(nextId, name)
-
-  /** Creates a fresh value, part of this enumeration, called `name`
-   *  and identified by the integer `i`.
-   *
-   * @param i    An integer that identifies this value at run-time. It must be
-   *             unique amongst all values of the enumeration.
-   * @param name A human-readable name for that value.
-   * @return     Fresh value with the provided identifier `i` and name `name`.
-   */
-  protected final def Value(i: Int, name: String)(implicit ev: Val =:= Value): Value = new Val(i, name)
-
   private def populateNameMap() {
     val fields = getClass.getDeclaredFields
     def isValDef(m: JMethod) = fields exists (fd => fd.getName == m.getName && fd.getType == m.getReturnType)
@@ -193,18 +156,14 @@ abstract class Enum (initial: Int) extends Serializable {
    *  identification behaviour, as well as to add additional public
    *  functionality.
    */
-  @SerialVersionUID(0 - 5171900738382012206L)
-  protected class Val protected[Enum] (i: Int, name: String) extends Ordered[Value] with Serializable {
+  @SerialVersionUID(0 - 5747769270401950006L)
+  class Val protected (i: Int, name: String) extends Ordered[Value] with Serializable { this: Value =>
     protected def this(i: Int)       = this(i, nextNameOrNull)
     protected def this(name: String) = this(nextId, name)
     protected def this()             = this(nextId)
 
-    // workaround because self-type annotation disallows Value-method to
-    // instantiate values
-    private[this] def thisAsValue: Value = this.asInstanceOf[Value]
-
     assert(!vmap.isDefinedAt(i), "Duplicate id: " + i)
-    vmap(i) = thisAsValue
+    vmap(i) = this
     vsetDefined = false
     nextId = i + 1
     if (nextId > topId) topId = nextId
@@ -225,7 +184,7 @@ abstract class Enum (initial: Int) extends Serializable {
     override def hashCode: Int = id.##
 
     /** Create a ValueSet which contains this value and another one */
-    def + (v: Value) = ValueSet(thisAsValue, v)
+    def + (v: Value) = ValueSet(this, v)
 
     override def toString() =
       if (name != null) name

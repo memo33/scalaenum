@@ -5,18 +5,19 @@ import java.lang.reflect.{ Modifier, Method => JMethod, Field => JField }
 
 object Examples {
 
-  // basic use case
+  // basic use case -- better use Scala Enumeration for this
   object Color extends Enum {
-    type Value = Val              // Value is abstract type in Enum
-    val Red, Green, Blue = Value  // Value is method instantiating Val (only if Val =:= Value)
+    class Value private[Color] extends Val      // Value is abstract type in Enum
+    val Red, Green, Blue = new Value
   }
 
   // adding methods to Value
+  class Day private extends Day.Val {
+    def isWorkingDay: Boolean = this != Day.Saturday && this != Day.Sunday
+  }
   object Day extends Enum {
-    class Value private[Day] extends Val {
-      def isWorkingDay: Boolean = this != Saturday && this != Sunday
-    }
-    val Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday = new Value
+    type Value = Day
+    val Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday = new Day
   }
 
   object MathConstants extends Enum {
@@ -26,22 +27,22 @@ object Examples {
     val Phi = Value(1.618)
   }
 
+  case class Planet private (mass: Double, radius: Double) extends Planet.Val {
+    def surfaceGravity = Planet.G * mass / (radius * radius)
+    def surfaceWeight(otherMass: Double) = otherMass * surfaceGravity
+  }
   object Planet extends Enum {
-    type Planet = Value
-    case class Value private[Planet] (mass: Double, radius: Double) extends Val {
-      def surfaceGravity = G * mass / (radius * radius)
-      def surfaceWeight(otherMass: Double) = otherMass * surfaceGravity
-    }
+    type Value = Planet
     val G = 6.67300E-11 // universal gravitational constant  (m3 kg-1 s-2)
 
-    val Mercury = Value(3.303e+23, 2.4397e6)
-    val Venus   = Value(4.869e+24, 6.0518e6)
-    val Earth   = Value(5.976e+24, 6.37814e6)
-    val Mars    = Value(6.421e+23, 3.3972e6)
-    val Jupiter = Value(1.9e+27,   7.1492e7)
-    val Saturn  = Value(5.688e+26, 6.0268e7)
-    val Uranus  = Value(8.686e+25, 2.5559e7)
-    val Neptune = Value(1.024e+26, 2.4746e7)
+    val Mercury = Planet(3.303e+23, 2.4397e6)
+    val Venus   = Planet(4.869e+24, 6.0518e6)
+    val Earth   = Planet(5.976e+24, 6.37814e6)
+    val Mars    = Planet(6.421e+23, 3.3972e6)
+    val Jupiter = Planet(1.9e+27,   7.1492e7)
+    val Saturn  = Planet(5.688e+26, 6.0268e7)
+    val Uranus  = Planet(8.686e+25, 2.5559e7)
+    val Neptune = Planet(1.024e+26, 2.4746e7)
   }
 
   // Java-style syntax
@@ -68,7 +69,7 @@ object Examples {
   object Foo extends Enum { class Value private[Foo] extends Val; val A, B = new Value }
   object Bar extends Enum { class Value private[Bar] extends Val; val A, B = new Value }
   def func(x: Foo.Value) = 1
-  def func(x: Bar.Value) = 2  // wouldn't compile with 'type Value = Val'
+  def func(x: Bar.Value) = 2  // wouldn't compile with 'type Value = Val
 }
 
 class EnumSpec extends WordSpec with Matchers {
@@ -123,7 +124,7 @@ class EnumSpec extends WordSpec with Matchers {
     "be able to map ValueSets to Seqs" in {
       val foo: Seq[Foo.Value] = (Foo.A + Foo.B).map(identity)(scala.collection.breakOut)
       import Bar.valueToVal
-      //val bar: Seq[Bar.Val] = (Bar.A + Bar.B).map(v => v)(scala.collection.breakOut)  // does not compile!
+      "val bar: Seq[Bar.Val] = (Bar.A + Bar.B).map(v => v)(scala.collection.breakOut)" shouldNot compile
       val baz: Seq[Baz.Value] = (Baz.A + Baz.B).map(identity)(scala.collection.breakOut)
     }
   }
