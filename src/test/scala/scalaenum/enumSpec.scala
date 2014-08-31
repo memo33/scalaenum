@@ -105,6 +105,16 @@ class EnumSpec extends WordSpec with Matchers {
       weDays.getClass should be (classOf[ValueSet])
       weDays should be (Set(Saturday, Sunday))
     }
+    "not have diverging implicit expansion problem" in {
+      for {
+        a <- Day.values
+        b <- Day.values
+        c <- Day.values
+      } yield (a, b, c)                                     // would cause DIE with Scala's Enumeration
+      Day.values.flatMap(a => Day.values.map(b => (a, b)))  // ditto
+      Day.values.map(d => (d, d))
+      Day.values.flatMap(d => Seq((d, d), (d, d)))          // would cause DIE only in combination with line above
+    }
   }
 
   object Foo extends Enumeration {
