@@ -8,6 +8,12 @@ Essentially, the difference to `scala.Enumeration` is as follows: The abstract c
 abstract type member (subclass of `Val`) to be refined in subclasses, instead of `Val` being a subclass of `Value`.
 This allows adding public methods to `Value`.
 
+Add the following to your sbt build file:
+
+    resolvers += "memo33-gdrive-repo" at "https://googledrive.com/host/0B9r6o2oTyY34ZVc4SFBWMV9yb0E/repo/releases/"
+
+    libraryDependencies += "com.github.memo33" %% "scalaenum" % "0.1.3"
+
 
 Examples
 --------
