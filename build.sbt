@@ -2,7 +2,9 @@ name := "scalaenum"
 
 organization := "com.github.memo33"
 
-version := "0.1.3"
+version := "0.1.4"
+
+licenses += ("MIT", url("http://opensource.org/licenses/MIT"))
 
 scalaVersion := "2.11.2"
 

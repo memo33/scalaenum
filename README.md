@@ -10,9 +10,9 @@ This allows adding public methods to `Value`.
 
 Add the following to your sbt build file:
 
-    resolvers += "memo33-gdrive-repo" at "https://googledrive.com/host/0B9r6o2oTyY34ZVc4SFBWMV9yb0E/repo/releases/"
+    resolvers += "memo33-bintray" at "http://dl.bintray.com/memo33/maven"
 
-    libraryDependencies += "com.github.memo33" %% "scalaenum" % "0.1.3"
+    libraryDependencies += "com.github.memo33" %% "scalaenum" % "0.1.4"
 
 
 Examples
