@@ -1,6 +1,9 @@
 scalaenum
 =========
 
+[ ![Download](https://api.bintray.com/packages/memo33/maven/scalaenum/images/download.svg) ](https://bintray.com/memo33/maven/scalaenum/_latestVersion)
+[![Build Status](https://travis-ci.org/memo33/scalaenum.svg?branch=master)](https://travis-ci.org/memo33/scalaenum)
+
 Provides a slightly modified version of `scala.Enumeration` that can easily be extended by a custom `Value`
 implementation which can be accessed as part of the public interface.
 
@@ -10,7 +13,7 @@ This allows adding public methods to `Value`.
 
 Add the following to your sbt build file:
 
-    resolvers += "memo33-bintray" at "http://dl.bintray.com/memo33/maven"
+    resolvers += "memo33-bintray" at "https://dl.bintray.com/memo33/maven"
 
     libraryDependencies += "com.github.memo33" %% "scalaenum" % "0.1.4"
 
