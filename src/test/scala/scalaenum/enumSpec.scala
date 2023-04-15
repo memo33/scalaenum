@@ -1,6 +1,7 @@
 package scalaenum
 
-import org.scalatest.{WordSpec, Matchers}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import java.lang.reflect.{ Modifier, Method => JMethod, Field => JField }
 
 object Examples {
@@ -72,7 +73,7 @@ object Examples {
   def func(x: Bar.Value) = 2  // wouldn't compile with 'type Value = Val
 }
 
-class EnumSpec extends WordSpec with Matchers {
+class EnumSpec extends AnyWordSpec with Matchers {
   import Examples._
 
   "Enum" should {
