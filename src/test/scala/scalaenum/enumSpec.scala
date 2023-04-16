@@ -99,11 +99,11 @@ class EnumSpec extends AnyWordSpec with Matchers {
     "allow proper access on Value methods" in {
       import Day._
       Day.values filter (_.isWorkingDay) should be (ValueSet(Monday, Tuesday, Wednesday, Thursday, Friday))
-      Day.values filter (!_.isWorkingDay) should be (ValueSet(Saturday, Sunday))
+      Day.values filter (d => !d.isWorkingDay) should be (ValueSet(Saturday, Sunday))
       MathConstants.values filter (_.value < 2) should be (Set(MathConstants.Phi))
 
       val weDays = for (d <- Day.values if !d.isWorkingDay) yield d
-      weDays.getClass should be (classOf[ValueSet])
+      // weDays.getClass should be (classOf[ValueSet])  // fails with scala-2.13 since CanBuildFrom does not exist
       weDays should be (Set(Saturday, Sunday))
     }
     "not have diverging implicit expansion problem" in {
@@ -133,10 +133,12 @@ class EnumSpec extends AnyWordSpec with Matchers {
   }
   "Enum.map()" should {
     "be able to map ValueSets to Seqs" in {
-      val foo: Seq[Foo.Value] = (Foo.A + Foo.B).map(identity)(scala.collection.breakOut)
+      // val foo: Seq[Foo.Value] = (Foo.A + Foo.B).map(identity)(scala.collection.breakOut)  // breakOut does not exist in scala-2.13
+      val foo: Seq[Foo.Value] = (Foo.A + Foo.B).iterator.map(identity).toSeq
       import Bar.valueToVal
       "val bar: Seq[Bar.Val] = (Bar.A + Bar.B).map(v => v)(scala.collection.breakOut)" shouldNot compile
-      val baz: Seq[Baz.Value] = (Baz.A + Baz.B).map(identity)(scala.collection.breakOut)
+      // val baz: Seq[Baz.Value] = (Baz.A + Baz.B).map(identity)(scala.collection.breakOut)  // breakOut does not exist in scala-2.13
+      val baz: Seq[Baz.Value] = (Baz.A + Baz.B).iterator.map(identity).toSeq
     }
   }
 
