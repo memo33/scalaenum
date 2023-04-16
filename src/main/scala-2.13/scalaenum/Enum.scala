@@ -3,7 +3,7 @@
  * See http://scala-lang.org (released under Apache License 2.0 License)
  */
 
-package scala
+package scalaenum
 
 import scala.collection.{SpecificIterableFactory, StrictOptimizedIterableOps, View, immutable, mutable}
 import java.lang.reflect.{Field => JField, Method => JMethod}
@@ -21,32 +21,32 @@ import scala.util.matching.Regex
  *  the enumeration.
  *
  *  All values in an enumeration share a common, unique type defined as the
- *  `Value` type member of the enumeration (`Value` selected on the stable
- *  identifier path of the enumeration instance).
+ *  abstract `Value` type member of the enumeration (`Value` selected on the
+ *  stable identifier path of the enumeration instance).
+ *  Besides, in contrast to Scala's built-in Enumeration, the `Value` type
+ *  member can be extended in subclasses, such that it is possible to mix-in
+ *  traits, for example. In this case, make sure to make the constructor of
+ *  `Value` private. Example:
  *
- *  Values SHOULD NOT be added to an enumeration after its construction;
- *  doing so makes the enumeration thread-unsafe. If values are added to an
- *  enumeration from multiple threads (in a non-synchronized fashion) after
- *  construction, the behavior of the enumeration is undefined.
+ *  {{{
+ *  // adding methods to Value
+ *  class Day private extends Day.Val {
+ *    def isWorkingDay: Boolean = this != Day.Saturday && this != Day.Sunday
+ *  }
+ *  object Day extends Enum {
+ *    type Value = Day
+ *    val Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday = new Day
+ *  }
  *
- * @example {{{
- * // Define a new enumeration with a type alias and work with the full set of enumerated values
- * object WeekDay extends Enumeration {
- *   type WeekDay = Value
- *   val Mon, Tue, Wed, Thu, Fri, Sat, Sun = Value
- * }
- * import WeekDay._
- *
- * def isWorkingDay(d: WeekDay) = ! (d == Sat || d == Sun)
- *
- * WeekDay.values filter isWorkingDay foreach println
- * // output:
- * // Mon
- * // Tue
- * // Wed
- * // Thu
- * // Fri
- * }}}
+ *  // usage:
+ *  Day.values filter (_.isWorkingDay) foreach println
+ *  // output:
+ *  // Monday
+ *  // Tuesday
+ *  // Wednesday
+ *  // Thursday
+ *  // Friday
+ *  }}}
  *
  * @example {{{
  * // Example of adding attributes to an enumeration by extending the Enumeration.Val class
@@ -77,8 +77,8 @@ import scala.util.matching.Regex
  *  @param initial The initial value from which to count the integers that
  *                 identifies values at run-time.
  */
-@SerialVersionUID(8476000850333817230L)
-abstract class Enumeration (initial: Int) extends Serializable {
+@SerialVersionUID(504146442575237004L)
+abstract class Enum (initial: Int) extends Serializable {
   thisenum =>
 
   def this() = this(0)
@@ -140,45 +140,16 @@ abstract class Enumeration (initial: Int) extends Serializable {
    */
   final def apply(x: Int): Value = vmap(x)
 
-  /** Return a `Value` from this `Enumeration` whose name matches
+  /** Return a `Value` from this `Enum` whose name matches
    *  the argument `s`.  The names are determined automatically via reflection.
    *
-   * @param  s an `Enumeration` name
-   * @return   the `Value` of this `Enumeration` if its name matches `s`
+   * @param  s an `Enum` name
+   * @return   the `Value` of this `Enum` if its name matches `s`
    * @throws   NoSuchElementException if no `Value` with a matching
-   *           name is in this `Enumeration`
+   *           name is in this `Enum`
    */
   final def withName(s: String): Value = values.byName.getOrElse(s,
     throw new NoSuchElementException(s"No value found for '$s'"))
-
-  /** Creates a fresh value, part of this enumeration. */
-  protected final def Value: Value = Value(nextId)
-
-  /** Creates a fresh value, part of this enumeration, identified by the
-   *  integer `i`.
-   *
-   *  @param i An integer that identifies this value at run-time. It must be
-   *           unique amongst all values of the enumeration.
-   *  @return  Fresh value identified by `i`.
-   */
-  protected final def Value(i: Int): Value = Value(i, nextNameOrNull)
-
-  /** Creates a fresh value, part of this enumeration, called `name`.
-   *
-   *  @param name A human-readable name for that value.
-   *  @return  Fresh value called `name`.
-   */
-  protected final def Value(name: String): Value = Value(nextId, name)
-
-  /** Creates a fresh value, part of this enumeration, called `name`
-   *  and identified by the integer `i`.
-   *
-   * @param i    An integer that identifies this value at run-time. It must be
-   *             unique amongst all values of the enumeration.
-   * @param name A human-readable name for that value.
-   * @return     Fresh value with the provided identifier `i` and name `name`.
-   */
-  protected final def Value(i: Int, name: String): Value = new Val(i, name)
 
   private def populateNameMap(): Unit = {
     @tailrec def getFields(clazz: Class[_], acc: Array[JField]): Array[JField] = {
@@ -192,14 +163,14 @@ abstract class Enumeration (initial: Int) extends Serializable {
 
     // The list of possible Value methods: 0-args which return a conforming type
     val methods: Array[JMethod] = getClass.getMethods filter (m => m.getParameterTypes.isEmpty &&
-                                                                   classOf[Value].isAssignableFrom(m.getReturnType) &&
-                                                                   m.getDeclaringClass != classOf[Enumeration] &&
+                                                                   classOf[Val].isAssignableFrom(m.getReturnType) &&
+                                                                   m.getDeclaringClass != classOf[Enum] &&
                                                                    isValDef(m))
     methods foreach { m =>
       val name = m.getName
       // invoke method to obtain actual `Value` instance
       val value = m.invoke(this).asInstanceOf[Value]
-      // verify that outer points to the correct Enumeration: ticket #3616.
+      // verify that outer points to the correct Enum: ticket #3616.
       if (value.outerEnum eq thisenum) {
         val id: Int = value.id
         nmap += ((id, name))
@@ -213,36 +184,18 @@ abstract class Enumeration (initial: Int) extends Serializable {
   private def nameOf(i: Int): String = synchronized { nmap.getOrElse(i, { populateNameMap() ; nmap(i) }) }
 
   /** The type of the enumerated values. */
-  @SerialVersionUID(7091335633555234129L)
-  abstract class Value extends Ordered[Value] with Serializable {
-    /** the id and bit location of this enumeration value */
-    def id: Int
-    /** a marker so we can tell whose values belong to whom come reflective-naming time */
-    private[Enumeration] val outerEnum = thisenum
+  type Value <: Val
 
-    override def compare(that: Value): Int =
-      if (this.id < that.id) -1
-      else if (this.id == that.id) 0
-      else 1
-    override def equals(other: Any): Boolean = other match {
-      case that: Enumeration#Value  => (outerEnum eq that.outerEnum) && (id == that.id)
-      case _                        => false
-    }
-    override def hashCode: Int = id.##
-
-    /** Create a ValueSet which contains this value and another one */
-    def + (v: Value): ValueSet = ValueSet(this, v)
-  }
-
-  /** A class implementing the [[scala.Enumeration.Value]] type. This class
+  /** The superclass of the `scala.Enum.Value` type. This class
    *  can be overridden to change the enumeration's naming and integer
-   *  identification behaviour.
+   *  identification behaviour, as well as to add additional public
+   *  functionality.
    */
-  @SerialVersionUID(0 - 3501153230598116017L)
-  protected class Val(i: Int, name: String) extends Value with Serializable {
-    def this(i: Int)       = this(i, nextNameOrNull)
-    def this(name: String) = this(nextId, name)
-    def this()             = this(nextId)
+  @SerialVersionUID(0 - 5747769270401950006L)
+  class Val protected (i: Int, name: String) extends Ordered[Value] with Serializable { this: Value =>
+    protected def this(i: Int)       = this(i, nextNameOrNull)
+    protected def this(name: String) = this(nextId, name)
+    protected def this()             = this(nextId)
 
     assert(!vmap.isDefinedAt(i), "Duplicate id: " + i)
     vmap(i) = this
@@ -250,14 +203,32 @@ abstract class Enumeration (initial: Int) extends Serializable {
     nextId = i + 1
     if (nextId > topId) topId = nextId
     if (i < bottomId) bottomId = i
+
+    /** the id and bit location of this enumeration value */
     def id: Int = i
+    /** a marker so we can tell whose values belong to whom come reflective-naming time */
+    private[Enum] val outerEnum = thisenum
+
+    override def compare(that: Value): Int =
+      if (this.id < that.id) -1
+      else if (this.id == that.id) 0
+      else 1
+    override def equals(other: Any): Boolean = other match {
+      case that: Enum#Val  => (outerEnum eq that.outerEnum) && (id == that.id)
+      case _               => false
+    }
+    override def hashCode: Int = id.##
+
+    /** Create a ValueSet which contains this value and another one */
+    def + (v: Value): ValueSet = ValueSet(this, v)
+
     override def toString(): String =
       if (name != null) name
       else try thisenum.nameOf(i)
       catch { case _: NoSuchElementException => "<Invalid enum: no field for #" + i + ">" }
 
     protected def readResolve(): AnyRef = {
-      val enumeration = thisenum.readResolve().asInstanceOf[Enumeration]
+      val enumeration = thisenum.readResolve().asInstanceOf[Enum]
       if (enumeration.vmap == null) this
       else enumeration.vmap(i)
     }
@@ -275,7 +246,7 @@ abstract class Enumeration (initial: Int) extends Serializable {
    *    not fall below zero), organized as a `BitSet`.
    *  @define Coll `collection.immutable.SortedSet`
    */
-  @SerialVersionUID(7229671200427364242L)
+  @SerialVersionUID(4546879851354549882L)
   class ValueSet private[ValueSet] (private[this] var nnIds: immutable.BitSet)
     extends immutable.AbstractSet[Value]
       with immutable.SortedSet[Value]
@@ -316,11 +287,11 @@ abstract class Enumeration (initial: Int) extends Serializable {
     override def collect[B](pf: PartialFunction[Value, B])(implicit @implicitNotFound(ValueSet.ordMsg) ev: Ordering[B]): immutable.SortedSet[B] =
       super[SortedSet].collect[B](pf)
 
-    @transient private[Enumeration] lazy val byName: Map[String, Value] = iterator.map( v => v.toString -> v).toMap
+    @transient private[Enum] lazy val byName: Map[String, Value] = iterator.map( v => v.toString -> v).toMap
   }
 
   /** A factory object for value sets */
-  @SerialVersionUID(3L)
+  @SerialVersionUID(454689821606549865L)
   object ValueSet extends SpecificIterableFactory[Value, ValueSet] {
     private final val ordMsg = "No implicit Ordering[${B}] found to build a SortedSet[${B}]. You may want to upcast to a Set[Value] first by calling `unsorted`."
     private final val zipOrdMsg = "No implicit Ordering[${B}] found to build a SortedSet[(Value, ${B})]. You may want to upcast to a Set[Value] first by calling `unsorted`."
