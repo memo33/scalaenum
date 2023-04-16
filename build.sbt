@@ -1,8 +1,8 @@
 name := "scalaenum"
 
-organization := "com.github.memo33"
+organization := "io.github.memo33"
 
-version := "0.1.5-SNAPSHOT"
+version := "0.2.0-SNAPSHOT"
 
 licenses += ("MIT", url("https://opensource.org/licenses/MIT"))
 

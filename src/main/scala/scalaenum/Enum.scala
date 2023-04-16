@@ -2,7 +2,7 @@
  * See http://scala-lang.org (released under BSD 3-Clause License)
  */
 
-package scalaenum
+package io.github.memo33.scalaenum
 
 import scala.collection.{ mutable, immutable, generic, SortedSetLike, AbstractSet }
 import java.lang.reflect.{ Modifier, Method => JMethod, Field => JField }

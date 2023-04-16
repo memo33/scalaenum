@@ -3,7 +3,7 @@
  * See http://scala-lang.org (released under Apache License 2.0 License)
  */
 
-package scalaenum
+package io.github.memo33.scalaenum
 
 import scala.collection.{SpecificIterableFactory, StrictOptimizedIterableOps, View, immutable, mutable}
 import java.lang.reflect.{Field => JField, Method => JMethod}

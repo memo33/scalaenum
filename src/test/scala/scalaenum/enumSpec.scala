@@ -1,4 +1,4 @@
-package scalaenum
+package io.github.memo33.scalaenum
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
