@@ -2,7 +2,9 @@ name := "scalaenum"
 
 organization := "io.github.memo33"
 
-version := "0.2.0-SNAPSHOT"
+version := "0.2.0"
+
+ThisBuild / versionScheme := Some("early-semver")
 
 description := "An alternative to Scala Enumeration"
 
