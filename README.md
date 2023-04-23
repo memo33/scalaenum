@@ -10,7 +10,9 @@ This allows adding public methods to `Value`.
 
 Add the following to your sbt build file:
 
-    libraryDependencies += "com.github.memo33" %% "scalaenum" % "0.2.0"
+    libraryDependencies += "io.github.memo33" %% "scalaenum" % "0.2.0"
+
+The latest version is available on [Maven Central](https://mvnrepository.com/artifact/io.github.memo33/scalaenum).
 
 
 Examples
